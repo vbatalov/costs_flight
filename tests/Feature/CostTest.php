@@ -3,44 +3,58 @@
 namespace Tests\Feature;
 
 // use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Models\Costs;
 use Carbon\Carbon;
+use League\Csv\Reader;
+use Storage;
 use Tests\TestCase;
 
 class CostTest extends TestCase
 {
-    /**
-     * A basic test example.
-     */
-    public function test_the_application_returns_a_successful_response(): void
+
+    public function test_data(int $chunk = 500)
     {
-        $flights = [
-            "S17545",
-            "S37545",
-            "S17545",
-            "SU1231",
-            "Z37674",
-            "ZF1345",
+        $reader = Reader::createFromPath(Storage::disk("public")->path("log_main.csv"), 'r');
+        $reader->setHeaderOffset(0);
+//        iterator_to_array($reader, true);
+        $reader->setDelimiter(";");
+        $records = $reader->getRecords();
+
+
+        $first_day = [];
+        $second_day = [];
+        $i = 0;
+        foreach ($records as $offset => $record) {
+            if ($i < 75000) {
+                $first_day[] = $record;
+            } else {
+                $second_day[] = $record;
+            }
+            $i++;
+            if ($i > 150_000) {
+                break;
+            }
+        }
+
+        $first_day = array_chunk($first_day, $chunk);
+        $second_day = array_chunk($second_day, $chunk);
+        return [
+            "first_day" => $first_day,
+            "second_day" => $second_day
         ];
+    }
 
-        $date_flights = [];
-        for ($i = 0; $i < 10; $i++) {
-            $date_flights[] = fake()->date;
-        }
-        $data = [];
-        for ($i = 0; $i < 1000; $i++) {
-            $data[] = [
-//                "PKKEY" => rand(1, 500),
-                "AirlineAndFlight" => $flights[rand(0, (count($flights)) -1)],
-                "date_flight" => $date_flights[rand(0, (count($date_flights)) -1)],
-                "cost" => rand(1,30),
-                "long" => rand(1,50),
-            ];
+    public function test_firstDay(): void
+    {
+        $items = $this->test_data(1000);
+
+        foreach ($items['first_day'] as $key => $item) {
+            $pkkey = $item[0]['pkkey'];
+            $response = $this->postJson(uri: "/api/set_cost_flight?pkkey=$pkkey",
+                data: $item)->withHeaders([
+                "Content-Type: application/json",
+            ]);
         }
 
-
-        $response = $this->postJson(uri: "/api/set_cost_flight?pkkey=3300",
-            data: $data)->withHeaders([
-            "Content-Type: application/json",
-        ]);
     }
 }
