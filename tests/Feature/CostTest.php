@@ -46,14 +46,23 @@ class CostTest extends TestCase
 
     public function test_firstDay(): void
     {
-        $items = $this->test_data(1000);
+
+        $items = $this->test_data(5000);
 
         foreach ($items['first_day'] as $key => $item) {
-            $pkkey = $item[0]['pkkey'];
-            $response = $this->postJson(uri: "/api/set_cost_flight?pkkey=$pkkey",
+//            if ($key>1) break;
+
+            $pkkey = $item[$key]['pkkey'];
+            $response = $this->post(uri: "/api/set_cost_flight?pkkey=$pkkey",
                 data: $item)->withHeaders([
                 "Content-Type: application/json",
             ]);
+
+            if ($response->status() == 200) {
+                $this->assertTrue(true);
+            }
+
+            $this->assertDatabaseCount("tbl_costs", 0);
         }
 
     }
