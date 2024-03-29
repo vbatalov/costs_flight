@@ -13,7 +13,18 @@ class SetCostFlightController extends Controller
         $items = $this->filterSameLong($request->post());
 
         foreach ($items as $key => $item) {
-            UpdateCostJob::dispatch(items: $item, pkkey: $request->query->get("pkkey"));
+//            $upd = Costs::where(
+//                [
+//                    "PKKEY" => $request->query->get("pkkey"),
+//                    "AirlineAndFlight" => $item['AirlineAndFlight'],
+//                    "date_flight" => $item['date_flight'],
+//                    "long" => $item['long'],
+//                ])
+//                ->update(
+//                    [
+//                        "cost" => $item['cost'],
+//                    ]);
+            UpdateCostJob::dispatch(item: $item, pkkey: $request->query->get("pkkey"));
         }
 
         return response("ok");

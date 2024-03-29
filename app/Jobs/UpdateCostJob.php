@@ -16,7 +16,7 @@ class UpdateCostJob implements ShouldQueue
     /**
      * Create a new job instance.
      */
-    public function __construct(public $items, public string $pkkey)
+    public function __construct(public $item, public string $pkkey)
     {
     }
 
@@ -28,16 +28,15 @@ class UpdateCostJob implements ShouldQueue
         $upd = Costs::where(
             [
                 "PKKEY" => $this->pkkey,
-                "AirlineAndFlight" => $this->items['AirlineAndFlight'],
-                "date_flight" => $this->items['date_flight'],
-                "long" => $this->items['long'],
+                "AirlineAndFlight" => $this->item['AirlineAndFlight'],
+                "date_flight" => $this->item['date_flight'],
+                "long" => $this->item['long'],
             ])
             ->update(
             [
-                "cost" => $this->items['cost'],
+                "cost" => $this->item['cost'],
             ]);
 
-        \Log::error($upd);
     }
 
 }
