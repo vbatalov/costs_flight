@@ -25,16 +25,17 @@ class UpdateCostJob implements ShouldQueue
      */
     public function handle(): void
     {
-        Costs::updateOrCreate(
+        $upd = Costs::updateOrCreate(
             [
                 "PKKEY" => $this->pkkey,
                 "AirlineAndFlight" => $this->items['AirlineAndFlight'],
-                "date_flight" => $this->items['dateflight'],
+                "date_flight" => $this->items['date_flight'],
                 "long" => $this->items['long'],
             ],
             [
                 "cost" => $this->items['cost'],
             ]);
+
     }
 
 }
