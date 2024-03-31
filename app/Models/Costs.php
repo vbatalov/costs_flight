@@ -21,7 +21,7 @@ class Costs extends Model
 
     protected $casts =
         [
-            "date_flight" => "date",
+//            "date_flight" => "date",
         ];
 
     public $timestamps = false;

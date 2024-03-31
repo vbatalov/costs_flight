@@ -7,7 +7,9 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class UpdateCostJob implements ShouldQueue
 {
@@ -16,7 +18,7 @@ class UpdateCostJob implements ShouldQueue
     /**
      * Create a new job instance.
      */
-    public function __construct(public $item, public string $pkkey)
+    public function __construct(public $item, public string $pkkey, public array $long)
     {
     }
 
@@ -25,18 +27,18 @@ class UpdateCostJob implements ShouldQueue
      */
     public function handle(): void
     {
-        $upd = Costs::where(
-            [
-                "PKKEY" => $this->pkkey,
-                "AirlineAndFlight" => $this->item['AirlineAndFlight'],
-                "date_flight" => $this->item['date_flight'],
-                "long" => $this->item['long'],
-            ])
-            ->update(
-            [
-                "cost" => $this->item['cost'],
+        $update = Costs::where([
+            "PKKEY" => $this->item[0],
+            "AirlineAndFlight" => $this->item[1],
+            "date_flight" => $this->item[2],
+        ])
+            ->whereIn("long", $this->long)
+            ->update([
+                "cost" => $this->item[3]
             ]);
+//        dd($this->item, $this->long, $update);
 
+//        Log::alert($update->getChanges());
     }
 
 }

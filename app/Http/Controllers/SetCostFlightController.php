@@ -12,20 +12,19 @@ class SetCostFlightController extends Controller
     {
         $items = $this->filterSameLong($request->post());
 
-        foreach ($items as $key => $item) {
-//            $upd = Costs::where(
-//                [
-//                    "PKKEY" => $request->query->get("pkkey"),
-//                    "AirlineAndFlight" => $item['AirlineAndFlight'],
-//                    "date_flight" => $item['date_flight'],
-//                    "long" => $item['long'],
-//                ])
-//                ->update(
-//                    [
-//                        "cost" => $item['cost'],
-//                    ]);
-            UpdateCostJob::dispatch(item: $item, pkkey: $request->query->get("pkkey"));
-        }
+//        foreach ($items as $key => $item) {
+////            $upd = Costs::where(
+////                [
+////                    "PKKEY" => $request->query->get("pkkey"),
+////                    "AirlineAndFlight" => $item['AirlineAndFlight'],
+////                    "dateflight" => $item['dateflight'],
+////                    "long" => $item['long'],
+////                ])
+////                ->update(
+////                    [
+////                        "cost" => $item['cost'],
+////                    ]);
+//        }
 
         return response("ok");
     }
@@ -42,36 +41,33 @@ class SetCostFlightController extends Controller
 
         // фильтрация
         foreach ($items as $key => $item) {
-            $cost = $item['cost'];
+            $key_name = $item['pkkey'] . "_" . $item['AirlineAndFlight']
+                . "_" . $item['dateflight'] . "_" . $item['cost'];
+
             foreach ($items as $item2) {
                 if (
                     /** Ищу все совпадения, кроме LONG. LONG должен отличаться */
                     $item['pkkey'] == $item2['pkkey']
                     and $item['AirlineAndFlight'] == $item2['AirlineAndFlight']
-                    and $item['date_flight'] == $item2['date_flight']
+                    and $item['dateflight'] == $item2['dateflight']
                     and $item['cost'] == $item2['cost']
                     and $item['long'] != $item2['long']
 
                 ) {
                     // Если ключ $cost (цена) уже есть, добавляю LONG в массив
-                    if (isset($duplicated_longs[$cost])) {
+                    if (isset($duplicated_longs[$key_name])) {
                         // чтобы не было дублирования в массиве LONG'ов, проверяю, есть ли такой LONG уже в массиве с ценой
                         // если нет, добавляю LONG
-                        if (!in_array($item['long'], $duplicated_longs[$cost]['long'])) {
-                            array_push($duplicated_longs[$cost]['long'], $item['long']);
+                        if (!in_array($item['long'], $duplicated_longs[$key_name])) {
+                            array_push($duplicated_longs[$key_name], $item['long']);
                         }
                     } else {
                         // если ещё нет ключа $cost, создаю
-                        $duplicated_longs[$cost] = [
-                            "pkkey" => $item['pkkey'],
-                            "AirlineAndFlight" => $item['AirlineAndFlight'],
-                            "date_flight" => $item['date_flight'],
-                            "cost" => $item['cost'],
-                            "long" => [$item['long']]
+                        $duplicated_longs[$key_name] = [
+                            $item['long'],
                         ];
                     }
-
-                    // собираю ключи для удаления из общего POST запроса.
+                    // Собираю ключи для удаления из общего POST запроса.
                     // Кортежи, которые не совпадают по LONG'у, я оставляю для обновления без "IN"
                     $itemsForDelete[] = $key;
                 }
@@ -83,19 +79,26 @@ class SetCostFlightController extends Controller
             unset($items[$key]);
         }
 
-        foreach ($duplicated_longs as $item) {
-            Costs::where([
-                "PKKEY" => $item['pkkey'],
-                "AirlineAndFlight" => $item['AirlineAndFlight'],
-                "date_flight" => $item['date_flight'],
-            ])
-            ->whereIn("long", $item['long'])
-            ->update([
-                "cost" => $item['cost']
-            ]);
-        }
-        
+        foreach ($items as $key => $item) {
+            $key_name = $item['pkkey'] . "_" . $item['AirlineAndFlight']
+                . "_" . $item['dateflight'] . "_" . $item['cost'];
 
-        return $items;
+            $duplicated_longs[$key_name] = [
+                $item['long'],
+            ];
+
+            unset($items[$key]);
+        }
+
+//        dd($duplicated_longs, $items);
+
+
+        foreach ($duplicated_longs as $data => $long) {
+            $explode = explode("_", $data);
+            UpdateCostJob::dispatch(item: $explode, pkkey: $explode[0], long: $long);
+        }
+
+
+        return true;
     }
 }
