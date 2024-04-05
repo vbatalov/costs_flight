@@ -10,9 +10,10 @@ class SetCostFlightController extends Controller
 {
     public function handle(Request $request)
     {
-//        dd($request->post());
-        $items = $this->filterSameLong($request->post());
+
+        $items = $this->filterSameLong(items: $request->post(), pkkey: $request->get("pkkey"));
         print_r("Count items:" . count($items) . "\n");
+        dd(count($items), $items);
 
         /** @var $count_items integer Количество кортежей */
         $count_items = count($items);
@@ -49,7 +50,7 @@ class SetCostFlightController extends Controller
             }
 
             // Обновление записей
-            $cost = Costs::where('CS_SVKEY', 1)
+            $rows_updated = Costs::where('CS_SVKEY', 1)
                 ->where('CS_PKKEY', $PK_KEY)
                 ->where('CS_CODE', $CH_KEY)
                 ->where('CS_DATE', $dateflight)
@@ -63,7 +64,8 @@ class SetCostFlightController extends Controller
                 ->whereIn('CS_LONGMIN', $long)
                 ->update(['CS_COST' => $cost, 'CS_COSTNETTO' => $cost ?? 0, 'CS_CHECKINDATEBEG' => null, 'CS_CHECKINDATEEND' => null]);
 
-            if ($cost) $count_updated++;
+
+            if ($rows_updated) $count_updated++;
 
         }
 
@@ -77,7 +79,7 @@ class SetCostFlightController extends Controller
      * 1. Если совпадают все значения, кроме LONG, записать в отдельный массив для использования в IN
      * 2. Удалить из POST запроса все обработанные данные из п.1
      */
-    private function filterSameLong(array $items)
+    private function filterSameLong(array $items, $pkkey)
     {
         $duplicated_longs = [];
         $itemsForDelete = [];
@@ -85,9 +87,11 @@ class SetCostFlightController extends Controller
 
         // фильтрация
         foreach ($items as $key => $item) {
-            $key_name = $item['pkkey'] . "_" . $item['AirlineAndFlight']
+            dd($item);
+            $key_name = $pkkey . "_" . $item['AirlineAndFlight']
                 . "_" . $item['dateflight'] . "_" . $item['cost'];
 
+            dd($key_name);
             foreach ($items as $item2) {
                 if (
                     /** Ищу все совпадения, кроме LONG. LONG должен отличаться */

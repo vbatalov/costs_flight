@@ -6,6 +6,7 @@ namespace Tests\Feature;
 use App\Models\Costs;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use League\Csv\Reader;
 use Tests\TestCase;
@@ -14,32 +15,30 @@ class CostTest extends TestCase
 {
 
 
-    public function test_data(int $chunk = 500)
+    public function test_data(int $count, int $chunk = 500)
     {
-        $reader = Reader::createFromPath(Storage::disk("public")->path("log_main.csv"), 'r');
+        $reader = Reader::createFromPath(Storage::disk("public")->path("30814.csv"), 'r');
         $reader->setHeaderOffset(0);
 //        iterator_to_array($reader, true);
-        $reader->setDelimiter("\t");
+//        $reader->setDelimiter(";");
         $records = $reader->getRecords();
 
 
-        $first_day = [];
+        $data = [];
 
         $i = 0;
         foreach ($records as $offset => $record) {
-            $record['dateflight'] = date("YYYY-mm-dd", strtotime($record['dateflight']) );
-            dd($record);
-            $first_day[] = $record;
+            foreach ($record as $value) {
+                $explode = explode(";", $value);
+                $explode[2] = date("Y-m-d", strtotime($explode[2]));
+                $data[] = $explode;
+            }
             $i++;
-            if ($i > 500) {
+            if ($i > $count) {
                 break;
             }
         }
-        dd($first_day);
-        $first_day = array_chunk($first_day, $chunk);
-
-        return $first_day;
-
+        return $data;
     }
 
 //    public function test_createSecondDay()
@@ -129,12 +128,10 @@ class CostTest extends TestCase
 
     public function test_select_from_charter()
     {
-        $post_data = $this->test_data(10000);
-        $post_data = $post_data[0];
-        $response = $this->post(uri: "/api/set_cost_flight?pkkey=30814",
-            data: $post_data)->withHeaders([
-            "Content-Type: application/json",
-        ]);
+        $post_data = $this->test_data(100);
+        $response = $this->postJson(uri: "/api/set_cost_flight?pkkey=30814",
+            data: $post_data);
+
 
         $this->assertTrue(true);
     }
