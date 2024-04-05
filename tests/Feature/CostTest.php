@@ -19,7 +19,7 @@ class CostTest extends TestCase
         $reader = Reader::createFromPath(Storage::disk("public")->path("log_main.csv"), 'r');
         $reader->setHeaderOffset(0);
 //        iterator_to_array($reader, true);
-        $reader->setDelimiter(";");
+        $reader->setDelimiter("\t");
         $records = $reader->getRecords();
 
 
@@ -27,12 +27,15 @@ class CostTest extends TestCase
 
         $i = 0;
         foreach ($records as $offset => $record) {
+            $record['dateflight'] = date("YYYY-mm-dd", strtotime($record['dateflight']) );
+            dd($record);
             $first_day[] = $record;
             $i++;
-            if ($i > 5) {
+            if ($i > 500) {
                 break;
             }
         }
+        dd($first_day);
         $first_day = array_chunk($first_day, $chunk);
 
         return $first_day;
@@ -126,18 +129,7 @@ class CostTest extends TestCase
 
     public function test_select_from_charter()
     {
-        $post_data =
-            [
-                ["pkkey" => "21231", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-05-05", "cost" => 299, "long" => 365],
-                ["pkkey" => "21231", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-05-05", "cost" => 299, "long" => 366],
-                ["pkkey" => "21231", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-02-18", "cost" => 245, "long" => 366],
-                ["pkkey" => "21231", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-02-04", "cost" => 231, "long" => 366],
-                ["pkkey" => "21231", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-04-09", "cost" => 161, "long" => 366],
-                ["pkkey" => "21231", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-06-16", "cost" => 161, "long" => 366],
-                ["pkkey" => "21231", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-05-05", "cost" => 147, "long" => 366],
-            ];
-
-        $post_data = $this->test_data(500);
+        $post_data = $this->test_data(10000);
         $post_data = $post_data[0];
         $response = $this->post(uri: "/api/set_cost_flight?pkkey=30814",
             data: $post_data)->withHeaders([

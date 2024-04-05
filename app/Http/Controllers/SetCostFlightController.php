@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Jobs\UpdateCostJob;
-use App\Models\Charter;
 use App\Models\Costs;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -12,8 +10,14 @@ class SetCostFlightController extends Controller
 {
     public function handle(Request $request)
     {
-
+//        dd($request->post());
         $items = $this->filterSameLong($request->post());
+        print_r("Count items:" . count($items) . "\n");
+
+        /** @var $count_items integer Количество кортежей */
+        $count_items = count($items);
+        /** @var $count_updated integer Количество выполненных обновлений */
+        $count_updated = 0;
 
         foreach ($items as $data => $long) {
             $explode = explode("_", $data);
@@ -23,33 +27,47 @@ class SetCostFlightController extends Controller
             $dateflight = $explode[2];
             $cost = $explode[3];
 
-//            $results = DB::table('Charter as charter')
-//                ->join('tbl_Costs as costs', 'charter.CH_KEY', '=', 'costs.CS_CODE')
-//                ->where('costs.CS_PKKEY', $PK_KEY)
-//                ->where('costs.CS_DATEEND', '>', DB::raw('GETDATE()'))
-//                ->where('costs.CS_DATE', "$dateflight")
-//                ->where(DB::raw('charter.CH_AIRLINECODE + charter.CH_FLIGHT'), $AirlineAndFlight)
-//                ->first(['charter.CH_KEY']);
-
-            $results = DB::table('Charter as charter')
-                ->whereExists(function ($query) use ($PK_KEY, $dateflight, $AirlineAndFlight) {
-                    $query->from('tbl_Costs')
-                        ->whereRaw('CS_CODE = CH_KEY AND CS_PKKEY = ?', [$PK_KEY])
-                        ->whereRaw('CS_DATEEND > CURRENT_TIMESTAMP AND CS_DATE = ?', [$dateflight]);
-                })->where(DB::raw('charter.CH_AIRLINECODE + charter.CH_FLIGHT'), $AirlineAndFlight)
-                ->pluck("CH_KEY");
+            try {
+                $CH_KEY = DB::table('Charter as charter')
+                    ->whereExists(function ($query) use ($PK_KEY, $dateflight, $AirlineAndFlight) {
+                        $query->from('tbl_Costs')
+                            ->whereRaw('CS_CODE = CH_KEY AND CS_PKKEY = ?', [$PK_KEY])
+                            ->whereRaw('CS_DATEEND > CURRENT_TIMESTAMP AND CS_DATE = ?', [$dateflight]);
+                    })->where(DB::raw('charter.CH_AIRLINECODE + charter.CH_FLIGHT'), $AirlineAndFlight)
+                    ->pluck("CH_KEY");
+            } catch (\Throwable $throwable) {
+                print_r("DB::table('Charter as charter')\n");
+                print_r($data);
+                dd($throwable->getMessage());
+            }
 
 
             /** DEBUG */
-            dd($results);
+            if ($CH_KEY->isEmpty()) {
+                //TODO Сделать ЛОГ, если пустой CH_KEY
+                continue;
+            }
+
+            // Обновление записей
+            $cost = Costs::where('CS_SVKEY', 1)
+                ->where('CS_PKKEY', $PK_KEY)
+                ->where('CS_CODE', $CH_KEY)
+                ->where('CS_DATE', $dateflight)
+                ->where('CS_DATEEND', $dateflight)
+                ->whereNotIn('CS_SUBCODE1', function ($query) {
+                    $query->select('AS_KEY')
+                        ->from('AirService')
+                        ->whereRaw('AS_NAMERUS like ?', ['%Блочный%']);
+                })
+                ->whereIn('CS_LONG', $long)
+                ->whereIn('CS_LONGMIN', $long)
+                ->update(['CS_COST' => $cost, 'CS_COSTNETTO' => $cost ?? 0, 'CS_CHECKINDATEBEG' => null, 'CS_CHECKINDATEEND' => null]);
+
+            if ($cost) $count_updated++;
+
         }
 
-//        foreach ($results as $key => $result) {
-//            dd(json_decode($result, true));
-//        }
-
-        dd("EMPTY");
-
+        print_r("Count updated: $count_updated");
 
         return response("ok");
     }
@@ -59,8 +77,7 @@ class SetCostFlightController extends Controller
      * 1. Если совпадают все значения, кроме LONG, записать в отдельный массив для использования в IN
      * 2. Удалить из POST запроса все обработанные данные из п.1
      */
-    private
-    function filterSameLong(array $items)
+    private function filterSameLong(array $items)
     {
         $duplicated_longs = [];
         $itemsForDelete = [];
