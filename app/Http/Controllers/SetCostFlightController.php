@@ -3,28 +3,53 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\UpdateCostJob;
+use App\Models\Charter;
 use App\Models\Costs;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class SetCostFlightController extends Controller
 {
     public function handle(Request $request)
     {
+
         $items = $this->filterSameLong($request->post());
 
-//        foreach ($items as $key => $item) {
-////            $upd = Costs::where(
-////                [
-////                    "PKKEY" => $request->query->get("pkkey"),
-////                    "AirlineAndFlight" => $item['AirlineAndFlight'],
-////                    "dateflight" => $item['dateflight'],
-////                    "long" => $item['long'],
-////                ])
-////                ->update(
-////                    [
-////                        "cost" => $item['cost'],
-////                    ]);
+        foreach ($items as $data => $long) {
+            $explode = explode("_", $data);
+
+            $PK_KEY = $explode[0];
+            $AirlineAndFlight = $explode[1];
+            $dateflight = $explode[2];
+            $cost = $explode[3];
+
+//            $results = DB::table('Charter as charter')
+//                ->join('tbl_Costs as costs', 'charter.CH_KEY', '=', 'costs.CS_CODE')
+//                ->where('costs.CS_PKKEY', $PK_KEY)
+//                ->where('costs.CS_DATEEND', '>', DB::raw('GETDATE()'))
+//                ->where('costs.CS_DATE', "$dateflight")
+//                ->where(DB::raw('charter.CH_AIRLINECODE + charter.CH_FLIGHT'), $AirlineAndFlight)
+//                ->first(['charter.CH_KEY']);
+
+            $results = DB::table('Charter as charter')
+                ->whereExists(function ($query) use ($PK_KEY, $dateflight, $AirlineAndFlight) {
+                    $query->from('tbl_Costs')
+                        ->whereRaw('CS_CODE = CH_KEY AND CS_PKKEY = ?', [$PK_KEY])
+                        ->whereRaw('CS_DATEEND > CURRENT_TIMESTAMP AND CS_DATE = ?', [$dateflight]);
+                })->where(DB::raw('charter.CH_AIRLINECODE + charter.CH_FLIGHT'), $AirlineAndFlight)
+                ->pluck("CH_KEY");
+
+
+            /** DEBUG */
+            dd($results);
+        }
+
+//        foreach ($results as $key => $result) {
+//            dd(json_decode($result, true));
 //        }
+
+        dd("EMPTY");
+
 
         return response("ok");
     }
@@ -34,10 +59,12 @@ class SetCostFlightController extends Controller
      * 1. Если совпадают все значения, кроме LONG, записать в отдельный массив для использования в IN
      * 2. Удалить из POST запроса все обработанные данные из п.1
      */
-    private function filterSameLong(array $items)
+    private
+    function filterSameLong(array $items)
     {
         $duplicated_longs = [];
         $itemsForDelete = [];
+
 
         // фильтрация
         foreach ($items as $key => $item) {
@@ -93,12 +120,12 @@ class SetCostFlightController extends Controller
 //        dd($duplicated_longs, $items);
 
 
-        foreach ($duplicated_longs as $data => $long) {
-            $explode = explode("_", $data);
-            UpdateCostJob::dispatch(item: $explode, pkkey: $explode[0], long: $long);
-        }
+//        foreach ($duplicated_longs as $data => $long) {
+//            $explode = explode("_", $data);
+//            UpdateCostJob::dispatch(item: $explode, pkkey: $explode[0], long: $long);
+//        }
 
 
-        return true;
+        return $duplicated_longs;
     }
 }

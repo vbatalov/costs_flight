@@ -9,7 +9,7 @@ class Costs extends Model
 {
     use HasFactory;
 
-    protected $table = "tbl_costs";
+    protected $table = "tbl_Costs";
     protected $fillable =
         [
             "PKKEY",

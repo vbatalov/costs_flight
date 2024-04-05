@@ -24,107 +24,121 @@ class CostTest extends TestCase
 
 
         $first_day = [];
-        $second_day = [];
+
         $i = 0;
         foreach ($records as $offset => $record) {
-            if ($i < 75000) {
-                $first_day[] = $record;
-            } else {
-                $second_day[] = $record;
-            }
+            $first_day[] = $record;
             $i++;
-            if ($i > 150_000) {
+            if ($i > 5) {
                 break;
             }
         }
-
         $first_day = array_chunk($first_day, $chunk);
-        $second_day = array_chunk($second_day, $chunk);
-        return [
-            "first_day" => $first_day,
-            "second_day" => $second_day
-        ];
+
+        return $first_day;
+
     }
 
-    public function test_createSecondDay()
-    {
-        Costs::truncate();
-
-        $items = $this->test_data(5000);
-        foreach ($items['second_day'] as $key => $item) {
-
-            foreach ($item as $data) {
-                Costs::create([
-                    "PKKEY" => $data['pkkey'],
-                    "AirlineAndFlight" => $data['AirlineAndFlight'],
-                    "date_flight" => $data['dateflight'],
-                    "long" => $data['long'],
-                    "cost" => $data['cost'],
-                ]);
-            }
-
-        }
-    }
-
-    public function test_firstDay(): void
-    {
-
-        $items = $this->test_data(5000);
-
-        foreach ($items['first_day'] as $key => $item) {
-//            if ($key != 14) continue;
-//dd($item);
-
-            $pkkey = $item[0]['pkkey'];
-            $response = $this->post(uri: "/api/set_cost_flight?pkkey=$pkkey",
-                data: $item)->withHeaders([
-                "Content-Type: application/json",
-            ]);
-
-            if ($response->status() == 200) {
-                $this->assertTrue(true);
-            }
-
+//    public function test_createSecondDay()
+//    {
+//
+//        $items = $this->test_data(10);
+//        foreach ($items['second_day'] as $key => $item) {
+//
 //            foreach ($item as $data) {
 //                Costs::create([
-//                    "PKKEY" => $item[$key]['pkkey'],
+//                    "PKKEY" => $data['pkkey'],
 //                    "AirlineAndFlight" => $data['AirlineAndFlight'],
-//                    "dateflight" => $data['dateflight'],
+//                    "date_flight" => $data['dateflight'],
 //                    "long" => $data['long'],
 //                    "cost" => $data['cost'],
 //                ]);
 //            }
+//
+//        }
+//    }
 
+//    public function test_firstDay(): void
+//    {
+//
+//        $items = $this->test_data(5000);
+//
+//        foreach ($items['first_day'] as $key => $item) {
+////            if ($key != 14) continue;
+////dd($item);
+//
+//            $pkkey = $item[0]['pkkey'];
+//            $response = $this->post(uri: "/api/set_cost_flight?pkkey=$pkkey",
+//                data: $item)->withHeaders([
+//                "Content-Type: application/json",
+//            ]);
+//
+//            if ($response->status() == 200) {
+//                $this->assertTrue(true);
+//            }
+//
+////            foreach ($item as $data) {
+////                Costs::create([
+////                    "PKKEY" => $item[$key]['pkkey'],
+////                    "AirlineAndFlight" => $data['AirlineAndFlight'],
+////                    "dateflight" => $data['dateflight'],
+////                    "long" => $data['long'],
+////                    "cost" => $data['cost'],
+////                ]);
+////            }
+//
+//
+//        }
+//
+//    }
 
-        }
+//    public function test_detectSomeLong()
+//    {
+//
+//
+//        for ($i = 3; $i < 10; $i++) {
+//            Costs::create(
+//                ["PKKEY" => "30814", "AirlineAndFlight" => "GDS005", "date_flight" => "2024-06-09", "cost" => 0, "long" => $i],
+//            );
+//        }
+//
+//        $this->assertDatabaseCount("tbl_costs", 7);
+//
+//        $post_data =
+//            [
+//                ["pkkey" => "30814", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-06-09", "cost" => 422, "long" => 3],
+//                ["pkkey" => "30814", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-06-09", "cost" => 422, "long" => 4],
+//                ["pkkey" => "30814", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-06-09", "cost" => 351, "long" => 5],
+//                ["pkkey" => "30814", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-06-09", "cost" => 500, "long" => 6],
+//                ["pkkey" => "30814", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-06-09", "cost" => 500, "long" => 7],
+//                ["pkkey" => "30814", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-06-09", "cost" => 422, "long" => 8],
+//                ["pkkey" => "30814", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-06-09", "cost" => 422, "long" => 9],
+//
+//            ];
+//
+//        $response = $this->post(uri: "/api/set_cost_flight?pkkey=30814",
+//            data: $post_data)->withHeaders([
+//            "Content-Type: application/json",
+//        ]);
+//
+//        $this->assertTrue(true);
+//    }
 
-    }
-
-//    use RefreshDatabase;
-    public function test_detectSomeLong()
+    public function test_select_from_charter()
     {
-        Costs::truncate();
-
-        for ($i = 3; $i < 10; $i++) {
-            Costs::create(
-                ["PKKEY" => "30814", "AirlineAndFlight" => "GDS005", "date_flight" => "2024-06-09", "cost" => 0, "long" => $i],
-            );
-        }
-
-        $this->assertDatabaseCount("tbl_costs", 7);
-
         $post_data =
             [
-                ["pkkey" => "30814", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-06-09", "cost" => 422, "long" => 3],
-                ["pkkey" => "30814", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-06-09", "cost" => 422, "long" => 4],
-                ["pkkey" => "30814", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-06-09", "cost" => 351, "long" => 5],
-                ["pkkey" => "30814", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-06-09", "cost" => 500, "long" => 6],
-                ["pkkey" => "30814", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-06-09", "cost" => 500, "long" => 7],
-                ["pkkey" => "30814", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-06-09", "cost" => 422, "long" => 8],
-                ["pkkey" => "30814", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-06-09", "cost" => 422, "long" => 9],
-
+                ["pkkey" => "21231", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-05-05", "cost" => 299, "long" => 365],
+                ["pkkey" => "21231", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-05-05", "cost" => 299, "long" => 366],
+                ["pkkey" => "21231", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-02-18", "cost" => 245, "long" => 366],
+                ["pkkey" => "21231", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-02-04", "cost" => 231, "long" => 366],
+                ["pkkey" => "21231", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-04-09", "cost" => 161, "long" => 366],
+                ["pkkey" => "21231", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-06-16", "cost" => 161, "long" => 366],
+                ["pkkey" => "21231", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-05-05", "cost" => 147, "long" => 366],
             ];
 
+        $post_data = $this->test_data(500);
+        $post_data = $post_data[0];
         $response = $this->post(uri: "/api/set_cost_flight?pkkey=30814",
             data: $post_data)->withHeaders([
             "Content-Type: application/json",
