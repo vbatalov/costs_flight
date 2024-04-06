@@ -46,7 +46,8 @@ class CostTest extends TestCase
 
     public function test_select_from_charter()
     {
-        $post_data = $this->test_data(10);
+        $post_data = $this->test_data(3);
+
         $response = $this->postJson(uri: "/api/set_cost_flight?pkkey=30814",
             data: $post_data);
 

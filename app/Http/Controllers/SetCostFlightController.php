@@ -11,8 +11,10 @@ class SetCostFlightController extends Controller
     public function handle(Request $request)
     {
         if (empty($request->post())) {
-            //todo Если пустой POST
+            trigger_error("POST data is empty");
         }
+
+        $PK_KEY = $request->get("pkkey");
 
         /** @var array $items группировка */
         $items = $this->group($request->post());
@@ -20,7 +22,6 @@ class SetCostFlightController extends Controller
         /** Количество выполненных обновлений */
         $count_updated = 0;
 
-        $PK_KEY = $request->get("pkkey");
 
         foreach ($items as $data => $long) {
             $explode = explode("_", $data);
@@ -28,25 +29,16 @@ class SetCostFlightController extends Controller
             $dateflight = $explode[1];
             $cost = $explode[2];
 
-            try {
-                $CH_KEY = DB::table('Charter as charter')
-                    ->whereExists(function ($query) use ($PK_KEY, $dateflight, $AirlineAndFlight) {
-                        $query->from('tbl_Costs')
-                            ->whereRaw('CS_CODE = CH_KEY AND CS_PKKEY = ?', [$PK_KEY])
-                            ->whereRaw('CS_DATEEND > CURRENT_TIMESTAMP AND CS_DATE = ?', [$dateflight]);
-                    })->where(DB::raw('charter.CH_AIRLINECODE + charter.CH_FLIGHT'), $AirlineAndFlight)
-                    ->pluck("CH_KEY");
-            } catch (\Throwable $throwable) {
-                print_r("DB::table('Charter as charter')\n");
-                print_r($data);
-                dd($throwable->getMessage());
-            }
+            $CH_KEY = DB::table('Charter as charter')
+                ->whereExists(function ($query) use ($PK_KEY, $dateflight, $AirlineAndFlight) {
+                    $query->from('tbl_Costs')
+                        ->whereRaw('CS_CODE = CH_KEY AND CS_PKKEY = ?', [$PK_KEY])
+                        ->whereRaw('CS_DATEEND > CURRENT_TIMESTAMP AND CS_DATE = ?', [$dateflight]);
+                })->where(DB::raw('charter.CH_AIRLINECODE + charter.CH_FLIGHT'), $AirlineAndFlight)
+                ->pluck("CH_KEY");
 
-
-            /** DEBUG */
             if ($CH_KEY->isEmpty()) {
-                //TODO Сделать ЛОГ, если пустой CH_KEY
-                continue;
+                trigger_error("CH_KEY not found");
             }
             // Обновление записей
             $rows_updated = Costs::where('CS_SVKEY', 1)
@@ -65,7 +57,7 @@ class SetCostFlightController extends Controller
 
 
             if ($rows_updated) {
-                $count_updated = $count_updated+$rows_updated;
+                $count_updated = $count_updated + $rows_updated;
             }
         }
 
@@ -79,13 +71,16 @@ class SetCostFlightController extends Controller
     /** Фильтр: поиск одинаковых значений LONG
      * Задача: принять POST данные
      * 1. Если совпадают все значения, кроме LONG, записать в отдельный массив для использования в IN
-     * 2. Удалить из POST запроса все обработанные данные из п.1
      */
     public function group($items): array
     {
+        if (!is_array($items)) $items = json_decode($items, true);
+
         return array_reduce($items, function ($carry, $item) {
             // Создаем ключ для итогового массива, объединяя первые три значения через "_"
             $key = implode('_', array_slice($item, 0, 3));
+
+            if (count($item) != 4) trigger_error("The number of records in the sent tuple does not match.");
 
             // Добавляем текущее значение четвертого ключа к массиву значений для этого ключа
             if (isset($carry[$key])) {
