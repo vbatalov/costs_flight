@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 // use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Http\Controllers\SetCostFlightController;
 use App\Models\Costs;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -17,7 +18,7 @@ class CostTest extends TestCase
 
     public function test_data(int $count, int $chunk = 500)
     {
-        $reader = Reader::createFromPath(Storage::disk("public")->path("30814.csv"), 'r');
+        $reader = Reader::createFromPath(Storage::disk("public")->path("30814_mac.csv"), 'r');
         $reader->setHeaderOffset(0);
 //        iterator_to_array($reader, true);
 //        $reader->setDelimiter(";");
@@ -30,109 +31,40 @@ class CostTest extends TestCase
         foreach ($records as $offset => $record) {
             foreach ($record as $value) {
                 $explode = explode(";", $value);
-                $explode[2] = date("Y-m-d", strtotime($explode[2]));
+
+                $explode[1] = date("Y-m-d", strtotime($explode[1]));
                 $data[] = $explode;
             }
             $i++;
-            if ($i > $count) {
+            if ($i == $count) {
                 break;
             }
         }
         return $data;
     }
 
-//    public function test_createSecondDay()
-//    {
-//
-//        $items = $this->test_data(10);
-//        foreach ($items['second_day'] as $key => $item) {
-//
-//            foreach ($item as $data) {
-//                Costs::create([
-//                    "PKKEY" => $data['pkkey'],
-//                    "AirlineAndFlight" => $data['AirlineAndFlight'],
-//                    "date_flight" => $data['dateflight'],
-//                    "long" => $data['long'],
-//                    "cost" => $data['cost'],
-//                ]);
-//            }
-//
-//        }
-//    }
-
-//    public function test_firstDay(): void
-//    {
-//
-//        $items = $this->test_data(5000);
-//
-//        foreach ($items['first_day'] as $key => $item) {
-////            if ($key != 14) continue;
-////dd($item);
-//
-//            $pkkey = $item[0]['pkkey'];
-//            $response = $this->post(uri: "/api/set_cost_flight?pkkey=$pkkey",
-//                data: $item)->withHeaders([
-//                "Content-Type: application/json",
-//            ]);
-//
-//            if ($response->status() == 200) {
-//                $this->assertTrue(true);
-//            }
-//
-////            foreach ($item as $data) {
-////                Costs::create([
-////                    "PKKEY" => $item[$key]['pkkey'],
-////                    "AirlineAndFlight" => $data['AirlineAndFlight'],
-////                    "dateflight" => $data['dateflight'],
-////                    "long" => $data['long'],
-////                    "cost" => $data['cost'],
-////                ]);
-////            }
-//
-//
-//        }
-//
-//    }
-
-//    public function test_detectSomeLong()
-//    {
-//
-//
-//        for ($i = 3; $i < 10; $i++) {
-//            Costs::create(
-//                ["PKKEY" => "30814", "AirlineAndFlight" => "GDS005", "date_flight" => "2024-06-09", "cost" => 0, "long" => $i],
-//            );
-//        }
-//
-//        $this->assertDatabaseCount("tbl_costs", 7);
-//
-//        $post_data =
-//            [
-//                ["pkkey" => "30814", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-06-09", "cost" => 422, "long" => 3],
-//                ["pkkey" => "30814", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-06-09", "cost" => 422, "long" => 4],
-//                ["pkkey" => "30814", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-06-09", "cost" => 351, "long" => 5],
-//                ["pkkey" => "30814", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-06-09", "cost" => 500, "long" => 6],
-//                ["pkkey" => "30814", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-06-09", "cost" => 500, "long" => 7],
-//                ["pkkey" => "30814", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-06-09", "cost" => 422, "long" => 8],
-//                ["pkkey" => "30814", "AirlineAndFlight" => "GDS005", "dateflight" => "2024-06-09", "cost" => 422, "long" => 9],
-//
-//            ];
-//
-//        $response = $this->post(uri: "/api/set_cost_flight?pkkey=30814",
-//            data: $post_data)->withHeaders([
-//            "Content-Type: application/json",
-//        ]);
-//
-//        $this->assertTrue(true);
-//    }
 
     public function test_select_from_charter()
     {
-        $post_data = $this->test_data(100);
+        $post_data = $this->test_data(10);
         $response = $this->postJson(uri: "/api/set_cost_flight?pkkey=30814",
             data: $post_data);
 
+//        dd(json_encode($post_data));
 
+        print_r($response->content());
         $this->assertTrue(true);
+    }
+
+    public function test_groupItems()
+    {
+        $items = $this->test_data(20000);
+//        dd($items);
+
+        $controller = new SetCostFlightController();
+//        $group = $controller->groupSameLong(items: $items, pkkey: 0);
+        $group = $controller->group($items);
+
+        dd($group);
     }
 }
