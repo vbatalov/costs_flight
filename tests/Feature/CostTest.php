@@ -16,7 +16,7 @@ class CostTest extends TestCase
 {
 
 
-    public function test_data(int $count, int $chunk = 500)
+    private function test_data(int $count, int $chunk = 500)
     {
         $reader = Reader::createFromPath(Storage::disk("public")->path("30814_mac.csv"), 'r');
         $reader->setHeaderOffset(0);
@@ -46,26 +46,24 @@ class CostTest extends TestCase
 
     public function test_select_from_charter()
     {
-        $post_data = $this->test_data(3);
+        $post_data = $this->test_data(10);
 
         $response = $this->postJson(uri: "/api/set_cost_flight?pkkey=30814",
             data: $post_data);
 
-//        dd(json_encode($post_data));
-
-        print_r($response->content());
+        dump($response->content());
         $this->assertTrue(true);
     }
 
-    public function test_groupItems()
-    {
-        $items = $this->test_data(20000);
-//        dd($items);
-
-        $controller = new SetCostFlightController();
-//        $group = $controller->groupSameLong(items: $items, pkkey: 0);
-        $group = $controller->group($items);
-
-        dd($group);
-    }
+//    public function test_groupItems()
+//    {
+//        $items = $this->test_data(20000);
+////        dd($items);
+//
+//        $controller = new SetCostFlightController();
+////        $group = $controller->groupSameLong(items: $items, pkkey: 0);
+//        $group = $controller->group($items);
+//
+//        dd($group);
+//    }
 }

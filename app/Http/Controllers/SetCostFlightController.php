@@ -14,14 +14,15 @@ class SetCostFlightController extends Controller
             trigger_error("POST data is empty");
         }
 
-        $PK_KEY = $request->get("pkkey");
+        if ($PK_KEY = $request->get("pkkey") == null) {
+            trigger_error("PK_KEY does not exists");
+        }
 
-        /** @var array $items группировка */
+        /** Группировка */
         $items = $this->group($request->post());
 
         /** Количество выполненных обновлений */
         $count_updated = 0;
-
 
         foreach ($items as $data => $long) {
             $explode = explode("_", $data);
@@ -38,6 +39,7 @@ class SetCostFlightController extends Controller
                 ->pluck("CH_KEY");
 
             if ($CH_KEY->isEmpty()) {
+                dump($PK_KEY, $dateflight, $AirlineAndFlight);
                 trigger_error("CH_KEY not found");
             }
             // Обновление записей
@@ -92,74 +94,4 @@ class SetCostFlightController extends Controller
             return $carry;
         }, []);
     }
-
-//    public function old_groupSameLong(array $items, $pkkey)
-//    {
-//        $duplicated_longs = [];
-//        $itemsForDelete = [];
-//
-//
-//        // фильтрация
-//        foreach ($items as $key => $item) {
-//            $key_name = $pkkey . "_" . $item['AirlineAndFlight']
-//                . "_" . $item['dateflight'] . "_" . $item['cost'];
-//
-//            foreach ($items as $item2) {
-//                if (
-//                    /** Ищу все совпадения, кроме LONG. LONG должен отличаться */
-//                    $item['pkkey'] == $item2['pkkey']
-//                    and $item['AirlineAndFlight'] == $item2['AirlineAndFlight']
-//                    and $item['dateflight'] == $item2['dateflight']
-//                    and $item['cost'] == $item2['cost']
-//                    and $item['long'] != $item2['long']
-//
-//                ) {
-//                    // Если ключ $cost (цена) уже есть, добавляю LONG в массив
-//                    if (isset($duplicated_longs[$key_name])) {
-//                        // чтобы не было дублирования в массиве LONG'ов, проверяю, есть ли такой LONG уже в массиве с ценой
-//                        // если нет, добавляю LONG
-//                        if (!in_array($item['long'], $duplicated_longs[$key_name])) {
-//                            array_push($duplicated_longs[$key_name], $item['long']);
-//                        }
-//                    } else {
-//                        // если ещё нет ключа $cost, создаю
-//                        $duplicated_longs[$key_name] = [
-//                            $item['long'],
-//                        ];
-//                    }
-//                    // Собираю ключи для удаления из общего POST запроса.
-//                    // Кортежи, которые не совпадают по LONG'у, я оставляю для обновления без "IN"
-//                    $itemsForDelete[] = $key;
-//                }
-//            }
-//        }
-//
-//        // из POST запроса удаляю записи, в которых одинаковые все значения, кроме LONG
-//        foreach ($itemsForDelete as $key) {
-//            unset($items[$key]);
-//        }
-//
-//        foreach ($items as $key => $item) {
-//            $key_name = $item['pkkey'] . "_" . $item['AirlineAndFlight']
-//                . "_" . $item['dateflight'] . "_" . $item['cost'];
-//
-//            $duplicated_longs[$key_name] = [
-//                $item['long'],
-//            ];
-//
-//            unset($items[$key]);
-//        }
-//
-////        dd($duplicated_longs, $items);
-//
-//
-////        foreach ($duplicated_longs as $data => $long) {
-////            $explode = explode("_", $data);
-////            UpdateCostJob::dispatch(item: $explode, pkkey: $explode[0], long: $long);
-////        }
-//
-//
-//        return $duplicated_longs;
-//    }
-
 }
