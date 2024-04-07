@@ -14,7 +14,7 @@ class SetCostFlightController extends Controller
             trigger_error("POST data is empty");
         }
 
-        if ($PK_KEY = $request->get("pkkey") == null) {
+        if (($PK_KEY = $request->get("pkkey")) == null) {
             trigger_error("PK_KEY does not exists");
         }
 
