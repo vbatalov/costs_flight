@@ -18,7 +18,7 @@ class CostTest extends TestCase
 
     private function test_data(int $count, int $chunk = 500)
     {
-        $reader = Reader::createFromPath(Storage::disk("public")->path("30814_mac.csv"), 'r');
+        $reader = Reader::createFromPath(Storage::disk("public")->path("30814.csv"), 'r');
         $reader->setHeaderOffset(0);
 //        iterator_to_array($reader, true);
 //        $reader->setDelimiter(";");
